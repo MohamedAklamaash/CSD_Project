@@ -116,7 +116,7 @@ model Payment {
   bookingId     String        @db.ObjectId
   userId        String        @db.ObjectId
   amount        Float
-  paymentStatus PaymentStatus @default(PENDING) 
+  paymentStatus PaymentStatus @default(PENDING)
   transactionId String
   paymentDate   DateTime      @default(now())
 
@@ -128,17 +128,15 @@ model Payment {
 
 model AdminApprovalRequest {
   id             String         @id @default(auto()) @map("_id") @db.ObjectId
-  bookingId      String         @db.ObjectId
+  bookingId      String?        @db.ObjectId
   stationId      String         @db.ObjectId
   adminId        String         @db.ObjectId
-  approvalStatus ApprovalStatus @default(PENDING) 
+  approvalStatus ApprovalStatus @default(PENDING)
   reviewDate     DateTime       @default(now())
 
-  booking Booking      @relation(fields: [bookingId], references: [id])
+  booking Booking?     @relation(fields: [bookingId], references: [id])
   station RadioStation @relation(fields: [stationId], references: [id])
   admin   User         @relation(fields: [adminId], references: [id])
-
-  @@map("admin_approval_requests")
 }
 
 enum Role {
