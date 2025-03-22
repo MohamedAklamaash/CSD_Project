@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { AdvertisementSlotService } from './advertisementslot.service';
 import { CreateSlotDto, UpdateSlotDto } from './dto/create-slot.dto';
@@ -22,6 +23,11 @@ export class AdvertisementSlotController {
   @Get()
   async findAll() {
     return this.slotService.findAll();
+  }
+
+  @Get("withfilter")
+  async findAllAvailableSlotsWithFilter(@Query("avalablityStatus") avalablityStatus: string) {
+    return this.slotService.findAllAvailableSlotsWithFilter(avalablityStatus)
   }
 
   @Get(':id')

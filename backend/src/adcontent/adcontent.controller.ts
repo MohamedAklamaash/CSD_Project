@@ -1,17 +1,18 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+// ad-content.controller.ts
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { AdContentService } from './adcontent.service';
 import { UploadAdDto } from './dto/upload-ad.dto';
 
-@Controller('ads')
+@Controller('adcontent')
 export class AdContentController {
-  constructor(private readonly adContentService: AdContentService) { }
+  constructor(private adContentService: AdContentService) { }
 
-  @Post('/upload')
-  async upload(@Body() uploadDto: UploadAdDto) {
-    return this.adContentService.upload(uploadDto);
+  @Post()
+  async upload(@Body() uploadAdDto: UploadAdDto) {
+    return this.adContentService.upload(uploadAdDto);
   }
 
-  @Get(':bookingId')
+  @Get('/booking/:bookingId')
   async findByBooking(@Param('bookingId') bookingId: string) {
     return this.adContentService.findByBooking(bookingId);
   }

@@ -1,25 +1,68 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateRadioStationDto, UpdateRadioStationDto } from './dto/create-radio-station.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { ApprovalStatus, SlotStatus } from '@prisma/client';
+import { ApprovalStatus, SlotStatus, Role } from '@prisma/client';
 
 @Injectable()
 export class RadioStationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(data: CreateRadioStationDto) {
+    // In a normal creation flow without approval, you might simply create the station.
+    // But here we use createWithApproval to attach the creator’s details.
     return this.prisma.radioStation.create({ data });
   }
 
-  async findAll() {
-    return this.prisma.radioStation.findMany({
-      include: {
-        rjs: true,
-        advertisementSlots: true,
-        bookings: true,
-        adminApprovalRequests: true,
-      },
-    });
+  /**
+   * Returns stations based on the current user’s role.
+   * - Admin: all stations
+   * - Station role: only stations that they created (via approval record)
+   * - Regular user: only approved stations
+   */
+  async findStations(user: { id: string; role: Role }) {
+    if (user.role === Role.ADMIN) {
+      return this.prisma.radioStation.findMany({
+        include: {
+          rjs: true,
+          advertisementSlots: true,
+          bookings: true,
+          adminApprovalRequests: true,
+        },
+      });
+    } else if (user.role === Role.STATION) {
+      return this.prisma.radioStation.findMany({
+        where: {
+          adminApprovalRequests: {
+            some: {
+              adminId: user.id,
+            },
+          },
+        },
+        include: {
+          rjs: true,
+          advertisementSlots: true,
+          bookings: true,
+          adminApprovalRequests: true,
+        },
+      });
+    } else {
+      // For a regular user, show only approved stations.
+      return this.prisma.radioStation.findMany({
+        where: {
+          adminApprovalRequests: {
+            some: {
+              approvalStatus: ApprovalStatus.APPROVED,
+            },
+          },
+        },
+        include: {
+          rjs: true,
+          advertisementSlots: true,
+          bookings: true,
+          adminApprovalRequests: true,
+        },
+      });
+    }
   }
 
   async findOne(id: string) {
@@ -49,7 +92,10 @@ export class RadioStationService {
     });
   }
 
-
+  /**
+   * Only an admin can approve or reject a station.
+   * (Assume the controller has already checked that the current user is an admin.)
+   */
   async approveOrRejectApproval(approvalId: string, data: UpdateRadioStationDto) {
     const approvalRequest = await this.prisma.adminApprovalRequest.findUnique({
       where: { id: approvalId },
@@ -77,25 +123,103 @@ export class RadioStationService {
     return updatedApproval;
   }
 
-  async createWithApproval(data: CreateRadioStationDto, adminId: string) {
-    if (!adminId) {
-      throw new BadRequestException('adminId is required for approval');
+  async createWithApproval(data: CreateRadioStationDto, creator: { id: string; role: Role }) {
+    if (creator.role === 'USER') {
+      throw new ForbiddenException('Only admin or station users can create a station.');
     }
 
     const station = await this.prisma.radioStation.create({
       data,
-      // data: { ...data, isActive: false }
     });
 
     const approval = await this.prisma.adminApprovalRequest.create({
       data: {
         stationId: station.id,
-        adminId: adminId,
+        adminId: creator.id,
         approvalStatus: ApprovalStatus.PENDING,
-        bookingId: null, 
+        bookingId: null,
       },
     });
 
     return { station, approval };
   }
+
+  async findPendingStations(user: { id: string; role: Role }) {
+    if (user.role === Role.USER) {
+      throw new ForbiddenException('Not authorized to view pending stations.');
+    }
+
+    if (user.role === Role.STATION) {
+      return this.prisma.radioStation.findMany({
+        where: {
+          AND: [
+            { adminApprovalRequests: { some: { approvalStatus: ApprovalStatus.PENDING } } },
+            { adminApprovalRequests: { some: { adminId: user.id } } },
+            { adminApprovalRequests: { none: { approvalStatus: ApprovalStatus.APPROVED } } },
+          ],
+        },
+        include: {
+          adminApprovalRequests: true,
+          rjs: true,
+          advertisementSlots: true,
+          bookings: true,
+        },
+      });
+    } else {
+      return this.prisma.radioStation.findMany({
+        where: {
+          AND: [
+            { adminApprovalRequests: { some: { approvalStatus: ApprovalStatus.PENDING } } },
+            { adminApprovalRequests: { none: { approvalStatus: ApprovalStatus.APPROVED } } },
+          ],
+        },
+        include: {
+          adminApprovalRequests: true,
+          rjs: true,
+          advertisementSlots: true,
+          bookings: true,
+        },
+      });
+    }
+  }
+
+  async findRejectedStations(user: { id: string; role: Role }) {
+    if (user.role === Role.USER) {
+      throw new ForbiddenException('Not authorized to view rejected stations.');
+    }
+
+    if (user.role === Role.STATION) {
+      return this.prisma.radioStation.findMany({
+        where: {
+          AND: [
+            { adminApprovalRequests: { some: { approvalStatus: ApprovalStatus.REJECTED } } },
+            { adminApprovalRequests: { some: { adminId: user.id } } },
+            { adminApprovalRequests: { none: { approvalStatus: ApprovalStatus.APPROVED } } },
+          ],
+        },
+        include: {
+          adminApprovalRequests: true,
+          rjs: true,
+          advertisementSlots: true,
+          bookings: true,
+        },
+      });
+    } else {
+      return this.prisma.radioStation.findMany({
+        where: {
+          AND: [
+            { adminApprovalRequests: { some: { approvalStatus: ApprovalStatus.REJECTED } } },
+            { adminApprovalRequests: { none: { approvalStatus: ApprovalStatus.APPROVED } } },
+          ],
+        },
+        include: {
+          adminApprovalRequests: true,
+          rjs: true,
+          advertisementSlots: true,
+          bookings: true,
+        },
+      });
+    }
+  }
+
 }

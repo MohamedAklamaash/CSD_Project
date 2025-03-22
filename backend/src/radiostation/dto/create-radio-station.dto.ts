@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { ApprovalStatus } from '@prisma/client';
 
@@ -10,6 +10,10 @@ export class CreateRadioStationDto {
   @IsNotEmpty()
   @IsString()
   location: string;
+
+  @IsString()
+  @IsOptional()
+  description: string
 
   @IsNotEmpty()
   @IsEmail()

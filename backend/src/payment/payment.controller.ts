@@ -1,30 +1,36 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+// payment.controller.ts
+import { Controller, Post, Body, Param, Get, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { UserDecorator } from 'src/decorator';
-import { CompletePaymentDTo, CreatePaymentDTO } from './dto';
+import { User } from '@prisma/client';
 import { JwtGuard } from 'src/guards';
 
-@UseGuards(JwtGuard)
 @Controller('payments')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) { }
+  constructor(private paymentService: PaymentService) { }
 
-
-  @Post('initializePayment')
-  async initializePayment(
-    @UserDecorator() usr,
-    @Body() dto: CreatePaymentDTO
+  @Post()
+  @UseGuards(JwtGuard)
+  async createPayment(
+    @Body() body: { bookingId: string; amount: number; transactionId: string },
+    @UserDecorator() usr: User
   ) {
-    return this.paymentService.createPayment(dto.bookingId, usr.id, dto.amount, dto.transactionId);
+    return this.paymentService.createPayment(
+      body.bookingId,
+      usr.id,
+      body.amount,
+      body.transactionId
+    );
   }
 
-  @Put("completePayment")
-  async completePayment(@Body() dto: CompletePaymentDTo) {
-    return this.paymentService.completePayment(dto.paymentId)
+  @Post('complete/:id')
+  async completePayment(@Param('id') paymentId: string) {
+    return this.paymentService.completePayment(paymentId);
   }
 
-  @Get('/user')
-  async listPaymentsByUser(@UserDecorator() usr) {
+  @Get('user')
+  @UseGuards(JwtGuard)
+  async listPaymentsByUser(@UserDecorator() usr: User) {
     return this.paymentService.listPaymentsByUser(usr.id);
   }
 }
