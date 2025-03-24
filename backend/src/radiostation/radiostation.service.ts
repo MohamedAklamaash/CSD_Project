@@ -79,12 +79,32 @@ export class RadioStationService {
     return station;
   }
 
-  async update(id: string, data: UpdateRadioStationDto) {
+  async update(
+    id: string,
+    data: UpdateRadioStationDto,
+    user: { id: string; role: Role }
+  ) {
+    const station = await this.prisma.radioStation.findUnique({
+      where: { id },
+      include: { adminApprovalRequests: true },
+    });
+    if (!station) throw new NotFoundException('Radio Station not found');
+  
+    // Identify the creator from the admin approval requests
+    // We assume the creator is the one with bookingId === null.
+    const creatorApproval = station.adminApprovalRequests.find(
+      (approval) => approval.bookingId === null
+    );
+    if (!creatorApproval || creatorApproval.adminId !== user.id) {
+      throw new ForbiddenException('You are not authorized to update this station');
+    }
+  
     return this.prisma.radioStation.update({
       where: { id },
       data,
     });
   }
+  
 
   async remove(id: string) {
     return this.prisma.radioStation.delete({
@@ -221,5 +241,4 @@ export class RadioStationService {
       });
     }
   }
-
 }

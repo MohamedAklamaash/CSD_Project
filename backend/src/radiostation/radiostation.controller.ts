@@ -65,11 +65,13 @@ export class RadioStationController {
 
   @Patch(':id')
   async update(
+    @UserDecorator() usr,
     @Param('id') id: string,
     @Body() updateDto: UpdateRadioStationDto
   ) {
-    return this.radioStationService.update(id, updateDto);
+    return this.radioStationService.update(id, updateDto, usr);
   }
+
 
   @Delete(':id')
   async remove(@Param('id') id: string) {

@@ -37,7 +37,7 @@ export class BookingService {
 
   async findAll() {
     return this.prisma.booking.findMany({
-      include: { user: true, station: true, rj: true, slot: true },
+      include: {  station: true, rj: true, slot: true },
     });
   }
 
