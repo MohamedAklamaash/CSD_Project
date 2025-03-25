@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { CreateRadioStationDto, UpdateRadioStationDto } from './dto/create-radio-station.dto';
+import { CreateRadioStationDto, UpdateRadioStationDetailsDto, UpdateRadioStationDto } from './dto/create-radio-station.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ApprovalStatus, SlotStatus, Role } from '@prisma/client';
 
@@ -29,7 +29,7 @@ export class RadioStationService {
           adminApprovalRequests: true,
         },
       });
-    } else if (user.role === Role.STATION) {
+    } else if (user.role) {
       return this.prisma.radioStation.findMany({
         where: {
           adminApprovalRequests: {
@@ -81,7 +81,7 @@ export class RadioStationService {
 
   async update(
     id: string,
-    data: UpdateRadioStationDto,
+    data: UpdateRadioStationDetailsDto,
     user: { id: string; role: Role }
   ) {
     const station = await this.prisma.radioStation.findUnique({
@@ -95,16 +95,19 @@ export class RadioStationService {
     const creatorApproval = station.adminApprovalRequests.find(
       (approval) => approval.bookingId === null
     );
-    if (!creatorApproval || creatorApproval.adminId !== user.id) {
-      throw new ForbiddenException('You are not authorized to update this station');
-    }
+    // if (!creatorApproval || creatorApproval.adminId !== user.id) {
+    //   throw new ForbiddenException('You are not authorized to update this station');
+    // }
+  
+    // Remove the approvalStatus field from the update data
+    const { ...updateData } = data;
   
     return this.prisma.radioStation.update({
       where: { id },
-      data,
+      data: updateData,
     });
   }
-  
+    
 
   async remove(id: string) {
     return this.prisma.radioStation.delete({
@@ -130,16 +133,8 @@ export class RadioStationService {
         approvalStatus: data.approvalStatus,
       },
     });
-
-    if (!approvalRequest.bookingId && data.approvalStatus === ApprovalStatus.APPROVED) {
-      await this.prisma.radioStation.update({
-        where: { id: approvalRequest.stationId },
-        data: {
-          // isActive: true,
-        },
-      });
-    }
-
+    console.log(data.approvalStatus);
+    
     return updatedApproval;
   }
 
@@ -169,7 +164,7 @@ export class RadioStationService {
       throw new ForbiddenException('Not authorized to view pending stations.');
     }
 
-    if (user.role === Role.STATION) {
+    if (user.role === Role.ADMIN) {
       return this.prisma.radioStation.findMany({
         where: {
           AND: [
@@ -208,7 +203,7 @@ export class RadioStationService {
       throw new ForbiddenException('Not authorized to view rejected stations.');
     }
 
-    if (user.role === Role.STATION) {
+    if (user.role === Role.ADMIN) {
       return this.prisma.radioStation.findMany({
         where: {
           AND: [

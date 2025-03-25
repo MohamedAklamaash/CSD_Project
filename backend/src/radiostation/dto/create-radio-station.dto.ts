@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { ApprovalStatus } from '@prisma/client';
 
@@ -24,6 +24,10 @@ export class CreateRadioStationDto {
   contactPhone: string;
 }
 
+
 export class UpdateRadioStationDto extends PartialType(CreateRadioStationDto) {
+  @IsEnum(ApprovalStatus)
   approvalStatus: ApprovalStatus
 }
+
+export class UpdateRadioStationDetailsDto extends PartialType(CreateRadioStationDto){}

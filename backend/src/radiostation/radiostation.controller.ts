@@ -8,7 +8,7 @@ import {
   Delete,
   UseGuards,
 } from '@nestjs/common';
-import { CreateRadioStationDto, UpdateRadioStationDto } from './dto/create-radio-station.dto';
+import { CreateRadioStationDto, UpdateRadioStationDetailsDto, UpdateRadioStationDto } from './dto/create-radio-station.dto';
 import { RadioStationService } from './radiostation.service';
 import { JwtGuard } from 'src/guards';
 import { UserDecorator } from 'src/decorator';
@@ -55,6 +55,8 @@ export class RadioStationController {
     if (usr.role !== 'ADMIN') {
       throw new ForbiddenException('Only admin can approve or reject stations');
     }
+    console.log(updateApprovalDto);
+    
     return this.radioStationService.approveOrRejectApproval(approvalId, updateApprovalDto);
   }
 
@@ -67,7 +69,7 @@ export class RadioStationController {
   async update(
     @UserDecorator() usr,
     @Param('id') id: string,
-    @Body() updateDto: UpdateRadioStationDto
+    @Body() updateDto: UpdateRadioStationDetailsDto
   ) {
     return this.radioStationService.update(id, updateDto, usr);
   }

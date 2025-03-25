@@ -32,7 +32,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <div className="min-h-screen text-black dark:text-white bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+          <div className="min-h-screen text-black dark:text-white bg-gray-100 dark:bg-black transition-colors duration-300">
             <Navbar />
             <main className="container mx-auto px-4 py-8">{children}</main>
           </div>

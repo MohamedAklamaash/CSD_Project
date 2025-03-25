@@ -130,15 +130,16 @@ model Payment {
 model AdminApprovalRequest {
   id             String         @id @default(auto()) @map("_id") @db.ObjectId
   bookingId      String?        @db.ObjectId
-  stationId      String         @db.ObjectId
+  stationId      String?        @db.ObjectId  // made optional
   adminId        String         @db.ObjectId
   approvalStatus ApprovalStatus @default(PENDING)
   reviewDate     DateTime       @default(now())
 
   booking Booking?     @relation(fields: [bookingId], references: [id])
-  station RadioStation @relation(fields: [stationId], references: [id])
+  station RadioStation? @relation(fields: [stationId], references: [id], onDelete: SetNull)
   admin   User         @relation(fields: [adminId], references: [id])
 }
+
 
 enum Role {
   USER

@@ -7,11 +7,14 @@ export class AdvertisementSlotService {
     constructor(private prisma: PrismaService) { }
 
     async create(data: CreateSlotDto) {
+        // Convert slotTime to a proper ISO-8601 string
+        const slotTimeISOString = new Date(data.slotTime).toISOString();
+
         const existingSlot = await this.prisma.advertisementSlot.findFirst({
             where: {
                 stationId: data.stationId,
                 rjId: data.rjId,
-                slotTime: data.slotTime,
+                slotTime: slotTimeISOString,
             },
         });
 
@@ -19,9 +22,11 @@ export class AdvertisementSlotService {
             throw new BadRequestException('Slot already exists for this station, RJ, and time.');
         }
 
-        return this.prisma.advertisementSlot.create({ data });
+        // Ensure you also pass the formatted date when creating the slot.
+        return this.prisma.advertisementSlot.create({
+            data: { ...data, slotTime: slotTimeISOString },
+        });
     }
-
 
     async findAll() {
         return this.prisma.advertisementSlot.findMany({
@@ -40,7 +45,6 @@ export class AdvertisementSlotService {
         });
     }
 
-
     async findOne(id: string) {
         const slot = await this.prisma.advertisementSlot.findUnique({
             where: { id },
@@ -51,10 +55,15 @@ export class AdvertisementSlotService {
         return slot;
     }
 
+
     async update(id: string, data: UpdateSlotDto) {
+        let updatedData = { ...data };
+        if (data.slotTime) {
+            updatedData.slotTime = new Date(data.slotTime);
+        }
         return this.prisma.advertisementSlot.update({
             where: { id },
-            data,
+            data: updatedData,
         });
     }
 
